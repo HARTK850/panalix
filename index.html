@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panalix | פאנליקס - מחולל הקומיקס שלך</title>
+    <!-- הקישור לקובץ העיצוב (ניצור אותו בהמשך) -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- 
+      טעינת קובץ ה-JavaScript שלנו כ-module. 
+      זה חיוני כדי שנוכל להשתמש ב-import עבור ה-SDK של Gemini.
+    -->
+    <script type="module" src="script.js"></script>
+</head>
+<body>
+
+    <!-- כותרת האתר -->
+    <header>
+        <h1>Panalix 🎨 פאנליקס</h1>
+        <p>מחולל הקומיקס האוטומטי שלך, מופעל על ידי Gemini AI</p>
+    </header>
+
+    <main id="app-container">
+
+        <!-- 
+          מסך 0: מסך הזנת מפתח API
+          זה המסך הראשון שהמשתמש יראה. 
+        -->
+        <section id="api-key-screen" class="app-screen active-screen">
+            <h2>ברוכים הבאים לפאנליקס</h2>
+            <p>כדי להתחיל, אנא הזן את מפתח ה-API הראשי שלך מ-Google AI Studio.</p>
+            <div class="form-group">
+                <label for="api-key-input">מפתח API ראשי:</label>
+                <input type="password" id="api-key-input" placeholder="הדבק את המפתח כאן...">
+                <button id="save-api-key-btn">שמור והתחל</button>
+            </div>
+            <p class="small-text">המפתח נשמר באופן מאובטח בדפדפן המקומי שלך (localStorage) בלבד.</p>
+        </section>
+
+        <!-- 
+          האפליקציה הראשית (מוסתרת עד להזנת מפתח)
+        -->
+        <div id="main-app" class="app-screen">
+
+            <!-- שלב 1: קלט הסיפור -->
+            <section id="story-input-section">
+                <h2>שלב 1: הזן את הסיפור שלך</h2>
+                <p>הזן את הסיפור המלא, תקציר, או בקש מה-AI ליצור סיפור עבורך.</p>
+                <div class="form-group">
+                    <textarea id="story-prompt-input" rows="10" placeholder="לדוגמה: 'צור סיפור על בלש שמוצא חתול מדבר בעליית גג ישנה...'"></textarea>
+                    <button id="generate-plan-btn">צור תוכנית קומיקס</button>
+                </div>
+            </section>
+
+            <!-- שלב 2: אישור תוכנית ודמויות -->
+            <section id="approval-section" class="hidden">
+                <h2>שלב 2: סקירה ואישור</h2>
+                
+                <!-- אזור אישור הדמויות -->
+                <div class="approval-subsection">
+                    <h3>א. אישור דמויות</h3>
+                    <p>ה-AI יצר תמונות ייחוס לדמויות הראשיות. אשר אותן או לחץ לעריכה.</p>
+                    <div id="character-approval-container" class="grid-container">
+                        <!-- ה-JS ימלא את זה בדמויות -->
+                    </div>
+                </div>
+
+                <!-- אזור סקירת התוכנית (עורך JSON חזותי) -->
+                <div class="approval-subsection">
+                    <h3>ב. סקירת תוכנית העלילה</h3>
+                    <p>זוהי תוכנית העמודים המלאה (JSON) שה-AI יצר. באפשרותך לערוך כל פרט.</p>
+                    <div id="plan-editor-container">
+                        <!-- ה-JS ימלא את זה בעורך החזותי של ה-JSON -->
+                    </div>
+                    <!-- כפתור להצעות שיפור אוטומטיות (רעיון 4) -->
+                    <button id="improve-plan-btn" class="secondary-btn">בקש הצעות שיפור מה-AI</button>
+                </div>
+
+                <button id="approve-plan-btn">אשר תוכנית והתחל בייצור הקומיקס</button>
+            </section>
+
+            <!-- שלב 3: יצירה ותצוגה -->
+            <section id="generation-section" class="hidden">
+                <h2>שלב 3: הקומיקס שלך מוכן</h2>
+                
+                <!-- מחוון התקדמות -->
+                <div id="generation-progress">
+                    <div id="progress-bar-fill"></div>
+                    <span id="progress-text">מייצר עמוד 1 מתוך 10...</span>
+                </div>
+
+                <!-- התצוגה של עמודי הקומיקס -->
+                <div id="comic-viewer-container" class="grid-container">
+                    <!-- ה-JS ימלא את זה בעמודי הקומיקס שנוצרו -->
+                </div>
+
+                <!-- כפתורי ייצוא -->
+                <div class="export-buttons">
+                    <button id="export-pdf-btn">ייצא ל-PDF</button>
+                    <button id="export-cbz-btn">ייצא ל-CBZ</button>
+                </div>
+            </section>
+
+            <!-- אזור הגדרות וניהול -->
+            <section id="settings-section">
+                <h3>הגדרות וניהול</h3>
+                <div id="api-key-management">
+                    <p>מפתחות API בשימוש: <span id="key-count-display">1</span></p>
+                    <button id="manage-keys-btn" class="secondary-btn">נהל מפתחות</button>
+                </div>
+                <div id="storage-management">
+                    <p>שימוש באחסון: <span id="storage-usage-display">0 MB</span></p>
+                    <button id="clear-storage-btn" class="secondary-btn danger-btn">נקה פרויקט וקבצים</button>
+                </div>
+            </section>
+
+        </div> <!-- סוף #main-app -->
+
+    </main>
+
+    <!-- 
+      ==== מודאלים (חלונות קופצים) ====
+      (מוסתרים כברירת מחדל)
+    -->
+
+    <!-- מודאל טעינה גלובלי -->
+    <div id="loading-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="spinner"></div>
+            <p id="loading-text">חושב...</p>
+        </div>
+    </div>
+
+    <!-- מודאל בקשת מפתחות גיבוי -->
+    <div id="key-pool-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3>נדרשים מפתחות נוספים</h3>
+            <p id="key-pool-message">הפרויקט שלך דורש כ-X קריאות API. כדי להבטיח יצירה רציפה, אנא ספק Y מפתחות API נוספים לגיבוי:</p>
+            <div class="form-group">
+                <textarea id="backup-keys-input" rows="5" placeholder="הדבק כל מפתח בשורה חדשה..."></textarea>
+                <button id="add-backup-keys-btn">הוסף מפתחות והמשך</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודאל עריכה מאוחד (לעריכת דמויות ועמודים) -->
+    <div id="edit-modal" class="modal-backdrop hidden">
+        <div class="modal-content large-modal">
+            <h3>עריכה חכמה</h3>
+            <p>התמונה הנוכחית:</p>
+            <img id="edit-modal-image" src="" alt="תמונה לעריכה" />
+            <div class="form-group">
+                <label for="edit-modal-prompt">מה תרצה לשנות?</label>
+                <textarea id="edit-modal-prompt" rows="3" placeholder="לדוגמה: 'שנה את צבע השיער לשחור', 'הוסף בועת דיבור: שלום!'..."></textarea>
+                <button id="apply-edit-btn">בצע עריכה</button>
+            </div>
+            <button class="modal-close-btn" id="close-edit-modal-btn">סגור</button>
+        </div>
+    </div>
+
+</body>
+</html>
