@@ -1,0 +1,519 @@
+/* ==============================================
+  קובץ העיצוב הראשי של פאנליקס (Panalix)
+  ==============================================
+*/
+
+/* --- 1. הגדרות גלובליות ומשתנים ---
+*/
+:root {
+    /* פלטת צבעים ראשית */
+    --color-bg: #f4f7f6;           /* רקע כללי בהיר */
+    --color-surface: #ffffff;      /* רקע כרטיסים ומשטחים */
+    --color-primary: #005f73;      /* כחול-ירוק עמוק (כפתורים, כותרות) */
+    --color-primary-dark: #003440; /* כחול כהה יותר */
+    --color-secondary: #0a9396;    /* טורקיז משני */
+    --color-text: #212529;         /* טקסט ראשי */
+    --color-text-muted: #5f6c7b;   /* טקסט משני/בהיר */
+    --color-border: #dee2e6;       /* גבולות */
+    --color-danger: #ae2012;       /* כפתורי מחיקה/סכנה */
+    --color-success: #008000;      /* הצלחה */
+    --color-overlay: rgba(0, 0, 0, 0.6); /* רקע למודאלים */
+
+    /* טיפוגרפיה */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    
+    /* מידות וצל */
+    --border-radius: 8px;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --box-shadow-modal: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* איפוס בסיסי */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    direction: rtl;
+    text-align: right;
+}
+
+/* --- 2. מבנה כללי (Layout) ---
+*/
+header {
+    background-color: var(--color-surface);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+    text-align: center;
+    box-shadow: var(--box-shadow);
+}
+
+header h1 {
+    color: var(--color-primary-dark);
+    font-weight: 700;
+}
+
+header p {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+}
+
+main#app-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* --- 3. ניהול מסכים (Screens) ---
+*/
+.app-screen {
+    display: none; /* כל המסכים מוסתרים כברירת מחדל */
+}
+
+.app-screen.active-screen {
+    display: block; /* המסך הפעיל מוצג */
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* אנימציית כניסה למסכים */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 4. עיצוב סקשנים (Sections) ---
+*/
+section {
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--box-shadow);
+}
+
+section h2, section h3 {
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-secondary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+section p {
+    margin-bottom: 1.5rem;
+    color: var(--color-text-muted);
+}
+
+.approval-subsection {
+    margin-top: 2rem;
+}
+
+/* --- 5. עיצוב טפסים וכפתורים (Forms & Buttons) ---
+*/
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-primary-dark);
+}
+
+input[type="text"],
+input[type="password"],
+textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 95, 115, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* כפתורים */
+button {
+    cursor: pointer;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s, transform 0.1s;
+    margin-top: 0.5rem;
+}
+
+/* כפתור ראשי */
+button:not(.secondary-btn):not(.danger-btn) {
+    background-color: var(--color-primary);
+    color: white;
+}
+button:not(.secondary-btn):not(.danger-btn):hover {
+    background-color: var(--color-primary-dark);
+}
+button:not(.secondary-btn):not(.danger-btn):active {
+    transform: scale(0.98);
+}
+
+/* כפתור משני */
+button.secondary-btn {
+    background-color: var(--color-bg);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+button.secondary-btn:hover {
+    background-color: rgba(0, 95, 115, 0.05);
+}
+
+/* כפתור סכנה */
+button.danger-btn {
+    background-color: var(--color-danger);
+    color: white;
+}
+button.danger-btn:hover {
+    background-color: #8b1a0e;
+}
+
+.small-text {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin-top: 1rem;
+}
+
+/* --- 6. רשתות תצוגה (Grid Containers) ---
+  (משמש לאישור דמויות ולתצוגת הקומיקס)
+*/
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+/* כרטיס דמות (לאישור) */
+.character-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+    text-align: center;
+}
+
+.character-card img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    background-color: var(--color-bg);
+}
+
+.character-card .card-content {
+    padding: 1rem;
+}
+
+.character-card h4 {
+    margin-bottom: 0.5rem;
+    color: var(--color-primary-dark);
+}
+
+.character-card button {
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 0.6rem;
+}
+
+/* עמוד קומיקס (לתצוגה) */
+.comic-page {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+    position: relative;
+}
+
+.comic-page img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 8.5 / 11; /* יחס דף קומיקס */
+    object-fit: cover;
+    background-color: #e0e0e0;
+}
+
+.comic-page .page-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    padding: 1.5rem 1rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.comic-page:hover .page-overlay {
+    opacity: 1;
+}
+.comic-page .page-number {
+    color: white;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+.comic-page .edit-page-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+/* --- 7. עורך JSON חזותי (Visual Plan Editor) ---
+*/
+#plan-editor-container .plan-page-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: #fcfcfc;
+}
+#plan-editor-container .plan-page-header {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    cursor: grab;
+}
+#plan-editor-container .plan-page-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+#plan-editor-container .plan-page-content .form-group {
+    margin-bottom: 0;
+}
+#plan-editor-container .plan-page-content label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* --- 8. מודאלים (Modals) ---
+*/
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-overlay);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+/* הסתרת מודאלים */
+.modal-backdrop.hidden {
+    display: none;
+}
+/* הצגת מודאלים (נוסף ע"י JS) */
+.modal-backdrop.visible {
+    display: flex;
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-content {
+    background-color: var(--color-surface);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow-modal);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-content.large-modal {
+    max-width: 800px;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 0.5rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-muted);
+}
+.modal-close-btn:hover {
+    color: var(--color-text);
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* --- 9. רכיבים ספציפיים (Components) ---
+*/
+
+/* ספינר טעינה */
+#loading-modal .modal-content {
+    text-align: center;
+}
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--color-bg);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+#loading-text {
+    font-weight: 600;
+    color: var(--color-primary-dark);
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* מודאל עריכה */
+#edit-modal-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    border: 1px solid var(--color-border);
+}
+
+/* מחוון התקדמות */
+#generation-progress {
+    width: 100%;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+}
+#progress-bar-fill {
+    position: absolute;
+    top: 0;
+    right: 0; /* התחלה מימין ב-RTL */
+    height: 100%;
+    width: 0%; /* יתעדכן ע"י JS */
+    background-color: var(--color-success);
+    opacity: 0.2;
+    border-radius: var(--border-radius);
+    transition: width 0.5s ease;
+}
+#progress-text {
+    position: relative;
+    z-index: 1;
+    font-weight: 600;
+    color: var(--color-primary-dark);
+}
+
+/* כפתורי ייצוא */
+.export-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+/* הגדרות וניהול */
+#settings-section {
+    background-color: transparent;
+    box-shadow: none;
+    border-top: 1px solid var(--color-border);
+    margin-top: 3rem;
+    padding-top: 2rem;
+}
+#settings-section h3 {
+    text-align: center;
+}
+#api-key-management, #storage-management {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+/* --- 10. מחלקות עזר (Utility Classes) ---
+*/
+.hidden {
+    display: none !important;
+}
+
+/* --- 11. רספונסיביות (Media Queries) ---
+*/
+@media (max-width: 768px) {
+    header {
+        padding: 1rem;
+    }
+    header h1 {
+        font-size: 1.5rem;
+    }
+    header p {
+        font-size: 0.9rem;
+    }
+    
+    main#app-container {
+        margin-top: 1rem;
+    }
+    
+    section {
+        padding: 1rem;
+    }
+    
+    .grid-container {
+        grid-template-columns: 1fr; /* עמודה אחת במובייל */
+    }
+    
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
+    }
+    
+    #api-key-management, #storage-management {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
