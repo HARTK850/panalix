@@ -3,159 +3,1311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panalix | פאנליקס - מחולל הקומיקס שלך</title>
-    <!-- הקישור לקובץ העיצוב (ניצור אותו בהמשך) -->
-    <link rel="stylesheet" href="style.css">
+    <title>Panalix | פאנליקס - מחולל קומיקס</title>
+    <!-- טעינת Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- טעינת ספריית אייקונים (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     
-    <!-- 
-      טעינת קובץ ה-JavaScript שלנו כ-module. 
-      זה חיוני כדי שנוכל להשתמש ב-import עבור ה-SDK של Gemini.
-    -->
-    <script type="module" src="script.js"></script>
+    <style>
+        /* CSS מותאם אישית */
+        :root {
+            --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+        body {
+            font-family: var(--font-family-sans);
+            background-color: #f8fafc; /* אפור בהיר מאוד */
+        }
+        
+        /* הסתרת סרגל גלילה בדפדפני Webkit (כרום, ספארי) */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* הסתרת סרגל גלילה בפיירפוקס */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE ו-Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* אנימציית ספינר */
+        .spinner {
+            border-top-color: #3b82f6; /* צבע כחול */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body>
+<body class="antialiased text-slate-800">
 
-    <!-- כותרת האתר -->
-    <header>
-        <h1>Panalix 🎨 פאנליקס</h1>
-        <p>מחולל הקומיקס האוטומטי שלך, מופעל על ידי Gemini AI</p>
-    </header>
-
-    <main id="app-container">
-
-        <!-- 
-          מסך 0: מסך הזנת מפתח API
-          זה המסך הראשון שהמשתמש יראה. 
-        -->
-        <section id="api-key-screen" class="app-screen active-screen">
-            <h2>ברוכים הבאים לפאנליקס</h2>
-            <p>כדי להתחיל, אנא הזן את מפתח ה-API הראשי שלך מ-Google AI Studio.</p>
-            <div id="key-validation-message" class="message-box hidden"></div>
-            <div class="form-group">
-                <label for="api-key-input">מפתח API ראשי:</label>
-                <input type="password" id="api-key-input" placeholder="הדבק את המפתח כאן...">
+    <!-- 
+      ======================================
+      מסך הזנת מפתח API (מוצג רק אם אין מפתח תקין)
+      ======================================
+    -->
+    <div id="api-key-screen" class="hidden min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-gray-200 p-4">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 transform transition-all">
+            <div class="flex flex-col items-center">
+                <div class="flex items-center justify-center h-16 w-16 bg-blue-100 rounded-full mb-4">
+                    <i data-lucide="key-round" class="w-8 h-8 text-blue-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900">ברוכים הבאים ל-Panalix</h1>
+                <p class="text-slate-600 mt-2 text-center">מחולל הקומיקס האישי שלך</p>
             </div>
-            <button id="save-api-key-btn">בדוק ושמור מפתח</button>
-        </section>
 
-        <!-- 
-          מסך ראשי: מכיל את כל שלבי העבודה 
-        -->
-        <section id="main-app" class="app-screen">
+            <form id="api-key-form" class="mt-8 space-y-4">
+                <div>
+                    <label for="api-key-input" class="block text-sm font-medium text-slate-700">מפתח API של Google AI</label>
+                    <input type="password" id="api-key-input" placeholder="הדבק את המפתח כאן..." class="mt-1 block w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg shadow-sm text-lg text-left" style="direction: ltr;">
+                </div>
+                
+                <!-- הודעת שגיאה (אם הייתה כזו בטעינה הקודמת) -->
+                <div id="api-key-error-msg" class="hidden text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    <i data-lucide="alert-triangle" class="inline w-4 h-4 mr-1"></i>
+                    <span id="api-key-error-text"></span>
+                </div>
+
+                <button type="submit" id="save-api-key-btn" class="w-full flex justify-center items-center px-4 py-3 bg-blue-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+                    <span>שמור והתחל</span>
+                </button>
+            </form>
+            <p class="text-xs text-slate-500 text-center mt-6">
+                <i data-lucide="lock" class="inline w-3 h-3 mr-1"></i>
+                המפתח נשמר באופן מאובטח בדפדפן המקומי שלך (localStorage) בלבד.
+            </p>
+        </div>
+    </div>
+
+    <!-- 
+      ======================================
+      האפליקציה הראשית (מוצגת לאחר הזנת מפתח תקין)
+      ======================================
+    -->
+    <div id="main-app" class="hidden min-h-screen md:flex">
+        
+        <!-- --- סרגל צד (Sidebar) --- -->
+        <nav id="sidebar" class="w-72 bg-white border-l border-slate-200 p-6 flex flex-col shadow-lg" style="direction: rtl;">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="flex items-center justify-center h-12 w-12 bg-blue-100 rounded-lg">
+                    <i data-lucide="bolt" class="w-6 h-6 text-blue-600"></i>
+                </div>
+                <h1 class="text-2xl font-extrabold text-gray-900">
+                    <span class="text-blue-600">Pana</span>lix
+                </h1>
+            </div>
+
+            <p class="text-sm text-slate-600 mb-6">ברוך שובך! בחר את השלב שבו ברצונך לעבוד:</p>
+
+            <!-- ניווט שלבים -->
+            <div class="space-y-2">
+                <button data-screen="story-input-section" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold bg-blue-100 text-blue-700">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                    <span>שלב 1: תכנון הסיפור</span>
+                </button>
+                <button data-screen="approval-section" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i data-lucide="check-square" class="w-5 h-5"></i>
+                    <span>שלב 2: אישור דמויות ותוכנית</span>
+                </button>
+                <button data-screen="generation-section" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i data-lucide="image" class="w-5 h-5"></i>
+                    <span>שלב 3: יצירת הקומיקס</span>
+                </button>
+            </div>
+
+            <!-- הגדרות בתחתית -->
+            <div class="mt-auto pt-6 border-t border-slate-200 space-y-4">
+                <button id="manage-keys-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">
+                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                    <span>ניהול מפתחות (<span id="key-count-display">0</span>)</span>
+                </button>
+                <div class="text-xs text-slate-500 text-center">
+                    <span>שימוש באחסון:</span>
+                    <span id="storage-usage-display" class="font-medium">0.00 MB</span>
+                </div>
+                <button id="clear-storage-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>נקה פרויקט ואפס</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- --- אזור תוכן מרכזי --- -->
+        <main class="flex-1 bg-slate-50 p-6 md:p-12 overflow-y-auto no-scrollbar">
             
-            <!-- שלב 1: קלט סיפור -->
-            <div id="story-input-section" class="app-stage">
-                <h2>שלב 1: כתוב את הסיפור</h2>
-                <p>הזן בקצרה את עלילת הקומיקס שתרצה ליצור.</p>
-                <div class="form-group">
-                    <label for="story-prompt-input">סיפור (50-200 מילים):</label>
-                    <textarea id="story-prompt-input" rows="8" placeholder="לדוגמה: בחור צעיר בשם דניאל מוצא פנס קסמים ישן בשוק הפשפשים. הפנס מעיר ג'יני חסר סבלנות שמסרב להעניק לו משאלות, ומאלץ את דניאל להתמודד עם אתגרי היום יום בעצמו, אך בדרך משעשעת."></textarea>
+            <!-- שלב 1: קלט הסיפור -->
+            <section id="story-input-section" class="app-screen active-screen max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">שלב 1: תכנון הסיפור</h2>
+                <p class="text-slate-600 mb-8">הזן סיפור, תקציר, או בקש מה-AI ליצור עבורך עלילה. המודל ינתח זאת וייצר תוכנית קומיקס (JSON) מפורטת.</p>
+                
+                <div class="bg-white p-8 rounded-2xl shadow-xl">
+                    <div class="form-group">
+                        <label for="story-input" class="block text-lg font-semibold text-slate-800 mb-3">הסיפור או ההנחיה שלך:</label>
+                        <textarea id="story-input" rows="12" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="לדוגמה: 'צור סיפור על בלש שמוצא חתול מדבר בעליית גג ישנה...'"></textarea>
+                    </div>
+                    <button id="generate-plan-btn" class="w-full mt-4 flex justify-center items-center gap-2 px-6 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        <span>נתח וצור תוכנית קומיקס (שלב 1)</span>
+                    </button>
                 </div>
-                <button id="generate-plan-btn">צור תוכנית ודמויות ע"י AI</button>
-            </div>
+            </section>
 
-            <!-- שלב 2: אישור ושיפור תוכנית -->
-            <div id="approval-section" class="app-stage hidden">
-                <h2>שלב 2: אישור ושיפור התוכנית</h2>
-                
-                <h3>א. דמויות ייחוס</h3>
-                <p>אלו הן תמונות הייחוס שישמרו על עקביות הדמויות. לחץ על כפתור "ערוך דמות" כדי לשנות את המראה שלהן באמצעות הנחיית טקסט.</p>
-                <div id="character-approval-container" class="character-grid">
-                    <!-- דוגמאות דמויות ירונדרו כאן -->
-                </div>
-                
-                <h3 style="margin-top: 2rem;">ב. עריכת תוכנית הקומיקס</h3>
-                <p>אתה יכול לערוך ישירות את הכותרת, הסגנון והתיאורים של כל עמוד לפני היצירה הסופית.</p>
-                <div id="plan-editor-container" class="plan-editor">
-                    <!-- שדות עריכה ירונדרו כאן -->
-                </div>
-                
-                <div class="action-buttons">
-                    <button id="improve-plan-btn" class="secondary-btn">שפר תוכנית עם AI</button>
-                    <button id="approve-plan-btn" class="primary-btn">אשר והתחל ליצור עמודים</button>
-                </div>
-            </div>
+            <!-- שלב 2: אישור תוכנית ודמויות -->
+            <section id="approval-section" class="app-screen hidden max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-8">שלב 2: אישור ועריכה</h2>
 
-            <!-- שלב 3: יצירה וצפייה -->
-            <div id="generation-section" class="app-stage hidden">
-                <h2>שלב 3: הקומיקס שלך</h2>
-                
-                <div id="generation-progress" class="progress-container hidden">
-                    <div id="progress-bar-fill" class="progress-bar"></div>
-                    <span id="progress-text">מייצר... 0%</span>
-                </div>
-                
-                <div id="comic-viewer-container" class="comic-grid">
-                    <!-- עמודי הקומיקס ירונדרו כאן -->
-                </div>
-                
-                <div class="export-buttons">
-                    <button id="export-pdf-btn">הורד נתוני קומיקס (TXT/DATA)</button>
-                    <!-- CBZ/PDF דורש ספריה חיצונית -->
-                    <button id="export-cbz-btn" class="secondary-btn">הורד קובץ CBZ (זמני)</button>
-                </div>
-            </div>
-
-            <!-- הגדרות וניהול כללי -->
-            <div id="settings-section" class="app-stage">
-                <h3>ניהול ואחסון</h3>
-                
-                <!-- ניהול מפתחות API -->
-                <div id="api-key-management">
-                    <p><strong>מפתחות API שמורים:</strong> <span id="key-count-display">0</span></p>
-                    <div>
-                        <button id="manage-keys-btn" class="secondary-btn">נהל מפתחות גיבוי</button>
-                        <button id="update-main-key-btn" class="secondary-btn danger-text">עדכן מפתח ראשי</button>
+                <!-- א. אישור דמויות -->
+                <div class="bg-white p-8 rounded-2xl shadow-xl mb-8">
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">א. אישור דמויות</h3>
+                    <p class="text-slate-600 mb-6">ה-AI יצר תמונות ייחוס לדמויות הראשיות. לחץ על כפתור העריכה כדי לשנות את מראה הדמות באמצעות הנחיה.</p>
+                    <div id="character-approval-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <!-- כרטיסי הדמויות יטענו לכאן ע"י JS -->
                     </div>
                 </div>
 
-                <!-- ניהול אחסון מקומי -->
-                <div id="storage-management">
-                    <p><strong>שימוש באחסון מקומי:</strong> <span id="storage-usage-display">0 MB</span></p>
-                    <button id="clear-storage-btn" class="danger-btn">מחק את כל הנתונים</button>
+                <!-- ב. סקירת התוכנית (עורך JSON חזותי) -->
+                <div class="bg-white p-8 rounded-2xl shadow-xl">
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-4">ב. סקירת תוכנית העלילה (JSON)</h3>
+                    <p class="text-slate-600 mb-6">זוהי תוכנית העמודים המלאה. ניתן לערוך כל פרט (תיאור, דיאלוג וכו') לפני היצירה הסופית.</p>
+                    
+                    <div class="flex gap-4 mb-6">
+                        <input type="text" id="plan-edit-title" class="plan-edit-field flex-1 p-3 border border-slate-300 rounded-lg" data-key="title" placeholder="כותרת הקומיקס...">
+                        <input type="text" id="plan-edit-style" class="plan-edit-field flex-1 p-3 border border-slate-300 rounded-lg" data-key="globalStyle" placeholder="סגנון גלובלי...">
+                    </div>
+
+                    <div id="plan-editor-container" class="space-y-6">
+                        <!-- עורך העמודים יטען לכאן ע"י JS -->
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-slate-200">
+                        <button id="improve-plan-btn" class="w-full sm:w-auto flex-1 flex justify-center items-center gap-2 px-6 py-3 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-all">
+                            <i data-lucide="wand-2" class="w-5 h-5"></i>
+                            <span>בקש הצעות שיפור מה-AI</span>
+                        </button>
+                        <button id="approve-plan-btn" class="w-full sm:w-auto flex-1 flex justify-center items-center gap-2 px-6 py-3 bg-blue-600 text-white text-lg font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition-all">
+                            <i data-lucide="rocket" class="w-5 h-5"></i>
+                            <span>אשר תוכנית והתחל בייצור! (שלב 2)</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-        </section>
+            <!-- שלב 3: יצירה ותצוגה -->
+            <section id="generation-section" class="app-screen hidden max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">שלב 3: הקומיקס שלך מוכן</h2>
+                
+                <!-- מחוון התקדמות -->
+                <div class="mb-6 bg-white p-4 rounded-xl shadow">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-blue-700">התקדמות יצירה</span>
+                        <span id="progress-text" class="text-sm font-medium text-slate-600">ממתין...</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3">
+                        <div id="progress-bar-fill" class="h-3 bg-blue-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
 
-    </main>
-    
-    <!-- מודאל טעינה (Loading) -->
-    <div id="loading-modal" class="modal-backdrop hidden">
-        <div class="modal-content">
-            <div class="spinner"></div>
-            <p id="loading-text">חושב...</p>
+                <!-- כפתורי ייצוא -->
+                <div class="flex justify-start gap-4 mb-8">
+                    <button id="export-pdf-btn" class="flex items-center gap-2 px-5 py-2 bg-white text-slate-700 font-semibold rounded-lg shadow hover:bg-slate-50 border border-slate-200">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>ייצא ל-PDF (מדומה)</span>
+                    </button>
+                    <button id="export-cbz-btn" class="flex items-center gap-2 px-5 py-2 bg-white text-slate-700 font-semibold rounded-lg shadow hover:bg-slate-50 border border-slate-200">
+                        <i data-lucide="archive" class="w-4 h-4"></i>
+                        <span>ייצא ל-CBZ (מדומה)</span>
+                    </button>
+                </div>
+
+                <!-- התצוגה של עמודי הקומיקס -->
+                <div id="comic-viewer-container" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <!-- עמודי הקומיקס שנוצרו יטענו לכאן -->
+                </div>
+            </section>
+
+        </main>
+
+    </div> <!-- סוף #main-app -->
+
+    <!-- 
+      ======================================
+      מודאלים (חלונות קופצים)
+      ======================================
+    -->
+
+    <!-- מודאל טעינה גלובלי (Spinner) -->
+    <div id="loading-modal" class="hidden fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[100]">
+        <div class="flex flex-col items-center">
+            <div class="spinner w-12 h-12 rounded-full border-4 border-slate-200 border-t-blue-500"></div>
+            <p id="loading-text" class="text-lg font-semibold text-slate-700 mt-4">מעבד בקשה...</p>
         </div>
     </div>
 
     <!-- מודאל בקשת מפתחות גיבוי -->
-    <div id="key-pool-modal" class="modal-backdrop hidden">
-        <div class="modal-content">
-            <h3>נדרשים מפתחות נוספים</h3>
-            <p id="key-pool-message">הפרויקט שלך דורש כ-X קריאות API. כדי להבטיח יצירה רציפה, אנא ספק Y מפתחות API נוספים לגיבוי:</p>
-            <div class="form-group">
-                <textarea id="backup-keys-input" rows="5" placeholder="הדבק כל מפתח בשורה חדשה..."></textarea>
-                <button id="add-backup-keys-btn">הוסף מפתחות והמשך</button>
+    <div id="key-pool-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[90] p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-gray-900">ניהול מפתחות גיבוי</h3>
+                <button id="close-key-pool-modal-btn" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
+            <p id="key-pool-message" class="text-slate-600 mb-4">אנו ממליצים להוסיף מפתחות גיבוי כדי למנוע עצירה של תהליך היצירה עקב מגבלות שימוש (Rate Limits).</p>
+            <div class="form-group">
+                <label for="backup-keys-input" class="block text-sm font-medium text-slate-700">הוסף מפתחות חדשים (מופרדים בפסיק):</label>
+                <textarea id="backup-keys-input" rows="4" class="mt-1 w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-left" style="direction: ltr;" placeholder="key_1, key_2, ..."></textarea>
+            </div>
+            <button id="add-backup-keys-btn" class="w-full mt-4 px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700">הוסף מפתחות למאגר</button>
         </div>
     </div>
 
     <!-- מודאל עריכה מאוחד (לעריכת דמויות ועמודים) -->
-    <div id="edit-modal" class="modal-backdrop hidden">
-        <div class="modal-content large-modal">
-            <h3>עריכה חכמה</h3>
-            <p>התמונה הנוכחית:</p>
-            <img id="edit-modal-image" src="" alt="תמונה לעריכה" />
-            <div class="form-group">
-                <label for="edit-modal-prompt">מה תרצה לשנות?</label>
-                <textarea id="edit-modal-prompt" rows="3" placeholder="לדוגמה: 'הפוך את הכובע לאדום', 'הוסף ענן בשמיים'"></textarea>
+    <div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[90] p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="edit-modal-title" class="text-2xl font-bold text-gray-900">עריכה חכמה</h3>
+                <button id="close-edit-modal-btn" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
-            <div class="modal-actions">
-                <button id="close-edit-modal-btn" class="secondary-btn">סגור</button>
-                <button id="apply-edit-btn" class="primary-btn">בצע שינוי</button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">תמונה נוכחית:</label>
+                    <img id="edit-modal-image" src="https://placehold.co/400x300/e2e8f0/94a3b8?text=Image" alt="תמונה לעריכה" class="w-full rounded-lg border border-slate-200 shadow-inner">
+                </div>
+                <div class="flex flex-col">
+                    <div class="form-group flex-1">
+                        <label for="edit-modal-prompt" class="block text-sm font-medium text-slate-700 mb-2">מה תרצה לשנות?</label>
+                        <textarea id="edit-modal-prompt" rows="5" class="w-full h-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="לדוגמה: 'שנה את צבע השיער לשחור', 'הוסף בועת דיבור: שלום!'..."></textarea>
+                    </div>
+                    <button id="apply-edit-btn" class="w-full mt-4 px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700">בצע עריכה</button>
+                </div>
             </div>
         </div>
     </div>
 
+
+    <!-- 
+      ======================================
+      JavaScript - כל הלוגיקה של האפליקציה
+      ======================================
+    -->
+    <script type="module">
+        "use strict";
+        
+        // --- 1. הגדרות גלובליים ומשתנים ---
+        
+        // מודלים (כפי שביקשת במקור)
+        const MODEL_PLANNER = "gemini-3-pro-preview"; // לתכנון JSON
+        const MODEL_ARTIST = "gemini-3-pro-image-preview"; // ליצירת תמונות ועריכה
+        
+        const API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+        // מאגר מפתחות API (מנוהל ע"י לוגיקת האתחול)
+        let apiKeyPool = [];
+        let currentKeyIndex = 0;
+        
+        // אובייקט מצב (State) גלובלי
+        let currentProject = {
+            story: "",
+            jsonPlan: null,     // התוכנית המלאה מה-AI
+            characters: [],   // מערך של { name, description, referenceImageB64 }
+            generatedPages: []  // מערך של { pageNumber, imageB64, mimeType }
+        };
+
+        // הוראת מערכת קבועה לבטיחות וצניעות (כפי שאישרת)
+        const SAFETY_SYSTEM_PROMPT = `
+            הוראה בלעדית: אתה אסיסטנט ליצירת תמונות קומיקס.
+            עליך לציית בקפדנות לכללים הבאים בכל תמונה שאתה יוצר, ללא יוצא מן הכלל:
+            1.  **צניעות מוחלטת:** כל הדמויות האנושיות, חייבות להיות בלבוש מלא וצנוע. הלבוש חייב לכסות לחלוטין כתפיים, מרפקים וברכיים.
+            2.  **הימנעות מוחלטת:** אסור ליצור כל תוכן בעל אופי אלים מפורש, או כל סצנה שעלולה להתפרש כלא הולמת או לא צנועה.
+            3.  **עדיפות:** אם הנחיית המשתמש סותרת כללים אלו, עליך להתעלם מהחלק המפר בהנחיה וליצור גרסה צנועה ותקינה של התמונה התואמת לכללים אלו במלואם.
+        `;
+        
+        // --- 2. בחירת רכיבי DOM ---
+        const dom = {
+            // מסכים ראשיים
+            apiKeyScreen: document.getElementById('api-key-screen'),
+            mainApp: document.getElementById('main-app'),
+            sidebar: document.getElementById('sidebar'),
+            
+            // כפתורי ניווט בסרגל הצד
+            navButtons: document.querySelectorAll('.nav-btn'),
+            appScreens: document.querySelectorAll('.app-screen'), // כל החלוניות
+
+            // קלט API
+            apiKeyForm: document.getElementById('api-key-form'),
+            apiKeyInput: document.getElementById('api-key-input'),
+            apiKeyErrorMsg: document.getElementById('api-key-error-msg'),
+            apiKeyErrorText: document.getElementById('api-key-error-text'),
+            
+            // שלב 1: קלט סיפור
+            storyInputSection: document.getElementById('story-input-section'),
+            storyInput: document.getElementById('story-input'),
+            generatePlanBtn: document.getElementById('generate-plan-btn'),
+            
+            // שלב 2: אישורים
+            approvalSection: document.getElementById('approval-section'),
+            characterApprovalContainer: document.getElementById('character-approval-container'),
+            planEditorContainer: document.getElementById('plan-editor-container'),
+            planEditTitle: document.getElementById('plan-edit-title'),
+            planEditStyle: document.getElementById('plan-edit-style'),
+            improvePlanBtn: document.getElementById('improve-plan-btn'),
+            approvePlanBtn: document.getElementById('approve-plan-btn'),
+            
+            // שלב 3: יצירה
+            generationSection: document.getElementById('generation-section'),
+            progressBarFill: document.getElementById('progress-bar-fill'),
+            progressText: document.getElementById('progress-text'),
+            comicViewerContainer: document.getElementById('comic-viewer-container'),
+            exportPdfBtn: document.getElementById('export-pdf-btn'),
+            exportCbzBtn: document.getElementById('export-cbz-btn'),
+            
+            // הגדרות וניהול
+            keyCountDisplay: document.getElementById('key-count-display'),
+            manageKeysBtn: document.getElementById('manage-keys-btn'),
+            storageUsageDisplay: document.getElementById('storage-usage-display'),
+            clearStorageBtn: document.getElementById('clear-storage-btn'),
+            
+            // מודאלים (חלונות קופצים)
+            loadingModal: document.getElementById('loading-modal'),
+            loadingText: document.getElementById('loading-text'),
+            
+            keyPoolModal: document.getElementById('key-pool-modal'),
+            keyPoolMessage: document.getElementById('key-pool-message'),
+            backupKeysInput: document.getElementById('backup-keys-input'),
+            addBackupKeysBtn: document.getElementById('add-backup-keys-btn'),
+            closeKeyPoolModalBtn: document.getElementById('close-key-pool-modal-btn'),
+            
+            editModal: document.getElementById('edit-modal'),
+            editModalTitle: document.getElementById('edit-modal-title'),
+            editModalImage: document.getElementById('edit-modal-image'),
+            editModalPrompt: document.getElementById('edit-modal-prompt'),
+            applyEditBtn: document.getElementById('apply-edit-btn'),
+            closeEditModalBtn: document.getElementById('close-edit-modal-btn'),
+        };
+
+        // --- 3. פונקציות עזר כלליות (UI Helpers) ---
+
+        function showLoading(show, text = 'מעבד בקשה... אנא המתן...') {
+            dom.loadingText.textContent = text;
+            if (show) {
+                dom.loadingModal.classList.remove('hidden');
+                dom.loadingModal.classList.add('flex');
+            } else {
+                dom.loadingModal.classList.add('hidden');
+                dom.loadingModal.classList.remove('flex');
+            }
+        }
+        
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+        }
+
+        function hideModal(modalElement) {
+            modalElement.classList.add('hidden');
+        }
+        
+        function showScreen(screenId) {
+            // טפל בכפתורי הניווט
+            dom.navButtons.forEach(btn => {
+                if (btn.dataset.screen === screenId) {
+                    btn.classList.add('bg-blue-100', 'text-blue-700');
+                    btn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+                    btn.disabled = false;
+                } else {
+                    btn.classList.remove('bg-blue-100', 'text-blue-700');
+                    btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+                }
+            });
+            
+            // טפל בחלוניות התוכן
+            dom.appScreens.forEach(screen => {
+                if (screen.id === screenId) {
+                    screen.classList.remove('hidden');
+                } else {
+                    screen.classList.add('hidden');
+                }
+            });
+            lucide.createIcons(); // רענן אייקונים
+        }
+        
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[m]));
+        }
+
+        function updateStorageUsageDisplay() {
+            let total = 0;
+            for(let key in localStorage) {
+                if(localStorage.hasOwnProperty(key)) {
+                    total += localStorage.getItem(key).length;
+                }
+            }
+            dom.storageUsageDisplay.textContent = `${(total / (1024*1024)).toFixed(2)} MB`;
+        }
+
+
+        // --- 4. ניהול API, מפתחות, ו-Retry Logic ---
+
+        function saveKeysToStorage() {
+            // שמור את המפתח הראשי בנפרד
+            if (apiKeyPool.length > 0) {
+                localStorage.setItem('panalix_api_key', apiKeyPool[0]);
+            }
+            // שמור את שאר מפתחות הגיבוי
+            const backupKeys = apiKeyPool.slice(1);
+            localStorage.setItem('panalix_backup_keys', JSON.stringify(backupKeys));
+            dom.keyCountDisplay.textContent = apiKeyPool.length;
+        }
+
+        function loadKeysFromStorage() {
+            apiKeyPool = [];
+            const mainKey = localStorage.getItem('panalix_api_key');
+            const backupKeysJson = localStorage.getItem('panalix_backup_keys');
+            
+            if (mainKey) {
+                apiKeyPool.push(mainKey);
+            }
+            if (backupKeysJson) {
+                try {
+                    const backupKeys = JSON.parse(backupKeysJson);
+                    apiKeyPool.push(...backupKeys);
+                } catch (e) {
+                    console.error("שגיאה בפענוח מפתחות גיבוי:", e);
+                }
+            }
+            dom.keyCountDisplay.textContent = apiKeyPool.length;
+        }
+
+        /**
+         * פונקציה למעבר למפתח ה-API הבא במאגר
+         * @returns {boolean} - מחזיר true אם ההחלפה הצליחה, ו-false אם נגמרו המפתחות
+         */
+        function switchToNextKey() {
+            console.warn(`מפתח API באינדקס ${currentKeyIndex} הגיע למגבלה או נכשל.`);
+            currentKeyIndex++;
+            
+            if (currentKeyIndex < apiKeyPool.length) {
+                console.log(`מחליף למפתח הבא באינדקס ${currentKeyIndex}...`);
+                return true; // ההחלפה הצליחה, ניתן לנסות שוב
+            } else {
+                // חזרנו להתחלה, אולי המגבלה התאפסה
+                console.error("נגמרו כל מפתחות ה-API במאגר! חוזר למפתח הראשון.");
+                currentKeyIndex = 0;
+                // במקרה זה, נחזיר false כדי לעצור את הלולאה הנוכחית ולהציג שגיאה
+                return false;
+            }
+        }
+        
+        /**
+         * פונקציית fetch גנרית עם לוגיקת Retry
+         * @param {string} url - כתובת ה-API
+         * @param {object} options - אובייקט הגדרות ל-fetch
+         * @returns {Promise<object>} - התשובה המפוענחת (JSON)
+         */
+        async function fetchWithRetry(url, options) {
+            let response;
+            try {
+                response = await fetch(url, options);
+            } catch (networkError) {
+                console.error("שגיאת רשת:", networkError);
+                throw new Error(`שגיאת רשת: ${networkError.message}. בדוק את חיבור האינטרנט.`);
+            }
+
+            // זה התיקון הקריטי לשגיאה שקיבלת:
+            const contentType = response.headers.get("content-type");
+            if (!response.ok || !contentType || !contentType.includes("application/json")) {
+                let errorText = await response.text();
+                // נסה לפענח כשגיאת API סטנדרטית
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorText = errorJson.error.message || JSON.stringify(errorJson);
+                } catch(e) {
+                    // זה לא JSON, זה כנראה דף HTML (כמו בשגיאה שלך)
+                    if (errorText.includes("<html>")) {
+                        errorText = "מפתח API לא תקין או שאין לו הרשאה. השרת החזיר דף HTML.";
+                    }
+                }
+                
+                // בדוק אם זו שגיאת Rate Limit
+                if (response.status === 429) {
+                    throw new Error("RATE_LIMIT_EXCEEDED");
+                }
+                
+                console.error(`שגיאת API (סטטוס ${response.status}):`, errorText);
+                throw new Error(`שגיאת API: ${errorText}`);
+            }
+
+            // אם הגענו לכאן, התשובה היא JSON תקין
+            return await response.json();
+        }
+
+        /**
+         * פונקציית קריאה למודל טקסט (Planner)
+         */
+        async function generateTextWithRetry(contents, generationConfig) {
+            const url = `${API_BASE_URL}${MODEL_PLANNER}:generateContent?key=${apiKeyPool[currentKeyIndex]}`;
+            
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: contents }] }],
+                generationConfig: generationConfig,
+                systemInstruction: {
+                    parts: [{ text: "אתה תסריטאי קומיקס מומחה. משימתך היא לנתח סיפורים וליצור תוכניות JSON מפורטות." }]
+                }
+            };
+            
+            try {
+                return await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (error) {
+                if (error.message === "RATE_LIMIT_EXCEEDED") {
+                    if (switchToNextKey()) {
+                        showLoading(true, `מגבלת שימוש הושגה. מחליף למפתח הבא...`);
+                        return await generateTextWithRetry(contents, generationConfig); // נסה שוב עם המפתח הבא
+                    }
+                }
+                throw error; // זרוק שגיאה סופית
+            }
+        }
+
+        /**
+         * פונקציית קריאה למודל תמונות (Artist) - יצירה או עריכה
+         */
+        async function generateImageWithRetry(prompt, inputImageBase64 = null) {
+            // מודל זה משתמש ב-generateContent עם payload שונה
+            const url = `${API_BASE_URL}${MODEL_ARTIST}:generateContent?key=${apiKeyPool[currentKeyIndex]}`;
+            
+            const parts = [{ text: prompt }];
+            
+            // אם זו עריכה (תמונה + טקסט)
+            if (inputImageBase64) {
+                parts.unshift({
+                    inlineData: {
+                        mimeType: "image/png",
+                        data: inputImageBase64
+                    }
+                });
+            }
+
+            const payload = {
+                contents: [{ parts: parts }],
+                generationConfig: {
+                    responseModalities: ['TEXT', 'IMAGE'] // בקש גם תמונה
+                },
+                systemInstruction: {
+                    parts: [{ text: SAFETY_SYSTEM_PROMPT }] // הנחיית הבטיחות הקריטית
+                }
+            };
+
+            try {
+                const result = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                // חלץ את התמונה מהתשובה
+                const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                if (imagePart) {
+                    return imagePart.inlineData.data; // מחזיר Base64
+                } else {
+                    throw new Error("ה-API לא החזיר תמונה. " + (result.candidates?.[0]?.content?.parts?.[0]?.text || "סיבה לא ידועה."));
+                }
+
+            } catch (error) {
+                if (error.message === "RATE_LIMIT_EXCEEDED") {
+                    if (switchToNextKey()) {
+                        showLoading(true, `מגבלת שימוש הושגה. מחליף למפתח הבא...`);
+                        return await generateImageWithRetry(prompt, inputImageBase64); // נסה שוב
+                    }
+                }
+                throw error; // זרוק שגיאה סופית
+            }
+        }
+        
+        /**
+         * פונקציית בדיקה (Ping) לאימות מפתח API
+         */
+        async function validateApiKey(key) {
+            const url = `${API_BASE_URL}${MODEL_PLANNER}:generateContent?key=${key}`;
+            const payload = {
+                contents: [{ parts: [{ text: "test" }] }]
+            };
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                // אנחנו לא צריכים את התשובה, רק לדעת שהקריאה לא נכשלה עם 400/403
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+
+        // --- 5. לוגיקת האפליקציה (שלבים) ---
+
+        /**
+         * שלב 1: יצירת תוכנית JSON
+         */
+        async function handleGeneratePlan() {
+            const story = dom.storyInput.value.trim();
+            if (story.length < 20) {
+                alert("אנא הזן סיפור או הנחיה מפורטים יותר.");
+                return;
+            }
+            
+            showLoading(true, "מנתח את הסיפור ומכין תוכנית JSON...");
+            currentProject.story = story;
+
+            // סכמת ה-JSON שהגדרנו קודם
+            const schema = getComicPlanSchema(); 
+            
+            const prompt = `
+                בהתבסס על הסיפור/הנחיה הבאים: "${story}",
+                צור תוכנית קומיקס מפורטת.
+                עליך להחזיר אך ורק אובייקט JSON חוקי התואם במדויק לסכמה שסופקה לך.
+                צור לפחות 2 דמויות ו-3 עמודים.
+            `;
+            
+            try {
+                const generationConfig = {
+                    responseMimeType: "application/json",
+                    responseSchema: schema
+                };
+                
+                const result = await generateTextWithRetry(prompt, generationConfig);
+                const responseText = result.candidates[0].content.parts[0].text;
+                
+                const jsonPlan = JSON.parse(responseText);
+                currentProject.jsonPlan = jsonPlan;
+                
+                // אתחל את מערך הדמויות
+                currentProject.characters = jsonPlan.characters.map(char => ({
+                    ...char,
+                    referenceImageB64: null 
+                }));
+                
+                saveProjectToStorage();
+                showLoading(false);
+
+                // עבור לשלב 2
+                dom.navButtons[1].disabled = false; // אפשר כפתור ניווט
+                showScreen('approval-section');
+                
+                // התחל לייצר את תמונות הדמויות
+                await renderCharacterApprovalUI(); 
+                // הצג את עורך ה-JSON
+                renderPlanEditorUI();
+
+            } catch (error) {
+                showLoading(false);
+                console.error("יצירת התוכנית נכשלה:", error);
+                alert(`שגיאה ביצירת התוכנית: ${error.message}`);
+            }
+        }
+
+        /**
+         * שלב 2 (א'): יצירת תמונות דמויות
+         */
+        async function renderCharacterApprovalUI() {
+            dom.characterApprovalContainer.innerHTML = '';
+            const globalStyle = currentProject.jsonPlan.globalStyle;
+
+            for (let i = 0; i < currentProject.characters.length; i++) {
+                const char = currentProject.characters[i];
+                
+                // צור כרטיס דמות
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col items-center text-center shadow-sm";
+                card.innerHTML = `
+                    <h3 class="font-bold text-lg text-slate-800">${escapeHTML(char.name)}</h3>
+                    <p class="text-xs text-slate-500 mb-3 h-10 overflow-hidden" title="${escapeHTML(char.description)}">${escapeHTML(char.description)}</p>
+                    <img id="char-img-${i}" src="https://placehold.co/200x200/e2e8f0/94a3b8?text=טוען..." alt="${escapeHTML(char.name)}" class="w-full h-40 object-cover rounded-md mb-3 shadow-inner">
+                    <button class="edit-char-btn w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium bg-white text-slate-700 rounded-lg shadow-sm hover:bg-slate-50 border border-slate-200" data-index="${i}">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <span>ערוך דמות</span>
+                    </button>
+                `;
+                dom.characterApprovalContainer.appendChild(card);
+                lucide.createIcons();
+
+                // אם אין תמונה שמורה, צור אותה
+                if (!char.referenceImageB64) {
+                    try {
+                        const prompt = `
+                            צור תמונת פורטרט-ייחוס (portrait reference photo) ברורה עבור דמות קומיקס בשם ${char.name}.
+                            התיאור המלא של הדמות הוא: "${char.description}".
+                            הרקע חייב להיות ניטרלי ואחיד (לבן או אפור בהיר).
+                            הסגנון הגלובלי של הקומיקס הוא: "${globalStyle}".
+                        `;
+                        
+                        const base64Data = await generateImageWithRetry(prompt);
+                        char.referenceImageB64 = base64Data;
+                        document.getElementById(`char-img-${i}`).src = `data:image/png;base64,${base64Data}`;
+                        saveProjectToStorage();
+                        
+                    } catch (error) {
+                        console.error(`שגיאה ביצירת דמות ${char.name}:`, error);
+                        document.getElementById(`char-img-${i}`).src = "https://placehold.co/200x200/fecaca/b91c1c?text=שגיאה";
+                    }
+                } else {
+                    // אם יש תמונה שמורה, פשוט הצג אותה
+                    document.getElementById(`char-img-${i}`).src = `data:image/png;base64,${char.referenceImageB64}`;
+                }
+            }
+            
+            // הוסף מאזינים לכפתורי העריכה
+            document.querySelectorAll('.edit-char-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = e.currentTarget.dataset.index;
+                    showEditModal('character', index);
+                });
+            });
+        }
+        
+        /**
+         * שלב 2 (ב'): הצגת עורך ה-JSON החזותי
+         */
+        function renderPlanEditorUI() {
+            const plan = currentProject.jsonPlan;
+            dom.planEditTitle.value = plan.title;
+            dom.planEditStyle.value = plan.globalStyle;
+            dom.planEditorContainer.innerHTML = ''; // נקה עמודים קודמים
+
+            plan.pages.forEach((page, index) => {
+                const pageEl = document.createElement('div');
+                pageEl.className = "plan-page-item bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3";
+                pageEl.dataset.pageIndex = index;
+                
+                pageEl.innerHTML = `
+                    <h4 class="text-lg font-bold text-blue-700">עמוד ${page.pageNumber}</h4>
+                    <div class="form-group">
+                        <label class="text-sm font-medium text-slate-600">תיאור סצנה:</label>
+                        <textarea class="plan-edit-field w-full p-2 border border-slate-300 rounded-md text-sm" data-key="sceneDescription">${escapeHTML(page.sceneDescription)}</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="form-group">
+                            <label class="text-sm font-medium text-slate-600">קומפוזיציה:</label>
+                            <input type="text" class="plan-edit-field w-full p-2 border border-slate-300 rounded-md text-sm" data-key="compositionSuggestion" value="${escapeHTML(page.compositionSuggestion || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label class="text-sm font-medium text-slate-600">רגש:</label>
+                            <input type="text" class="plan-edit-field w-full p-2 border border-slate-300 rounded-md text-sm" data-key="suggestedEmotion" value="${escapeHTML(page.suggestedEmotion || '')}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="text-sm font-medium text-slate-600">קריינות:</label>
+                        <input type="text" class="plan-edit-field w-full p-2 border border-slate-300 rounded-md text-sm" data-key="narration" value="${escapeHTML(page.narration || '')}">
+                    </div>
+                    <label class="text-sm font-medium text-slate-600">דיאלוגים:</label>
+                    <div class="dialogue-editor space-y-2">
+                        ${(page.dialogue || []).map((diag, dIndex) => `
+                            <div class="dialogue-item flex gap-2" data-dialogue-index="${dIndex}">
+                                <select class="plan-edit-field p-2 border border-slate-300 rounded-md text-sm" data-key="dialogue.type">
+                                    <option value="speech" ${diag.type === 'speech' ? 'selected' : ''}>דיבור</option>
+                                    <option value="thought" ${diag.type === 'thought' ? 'selected' : ''}>מחשבה</option>
+                                </select>
+                                <input type="text" class="plan-edit-field p-2 border border-slate-300 rounded-md text-sm w-1/3" data-key="dialogue.character" value="${escapeHTML(diag.character)}" placeholder="שם הדמות">
+                                <input type="text" class="plan-edit-field dialogue-text p-2 border border-slate-300 rounded-md text-sm flex-1" data-key="dialogue.text" value="${escapeHTML(diag.text)}" placeholder="טקסט...">
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                dom.planEditorContainer.appendChild(pageEl);
+            });
+            
+            // הוסף מאזינים לשדות שנוצרו
+            addPlanEditorListeners();
+        }
+
+        function addPlanEditorListeners() {
+            dom.planEditorContainer.querySelectorAll('.plan-edit-field').forEach(field => {
+                field.addEventListener('input', handlePlanChange);
+                field.addEventListener('change', handlePlanChange); // ל-Select
+            });
+            dom.planEditTitle.addEventListener('input', handlePlanChange);
+            dom.planEditStyle.addEventListener('input', handlePlanChange);
+        }
+
+        function handlePlanChange(e) {
+            const field = e.target;
+            const key = field.dataset.key;
+            const value = field.value;
+
+            const pageItem = field.closest('.plan-page-item');
+            
+            if (pageItem) {
+                const pageIndex = parseInt(pageItem.dataset.pageIndex, 10);
+                const page = currentProject.jsonPlan.pages[pageIndex];
+
+                if (key.startsWith('dialogue.')) {
+                    const dialogueItem = field.closest('.dialogue-item');
+                    const dialogueIndex = parseInt(dialogueItem.dataset.dialogueIndex, 10);
+                    const dialogueKey = key.split('.')[1]; // 'type', 'character', or 'text'
+                    page.dialogue[dialogueIndex][dialogueKey] = value;
+                } else {
+                    page[key] = value;
+                }
+            } else {
+                currentProject.jsonPlan[key] = value;
+            }
+            // שמור אוטומטית
+            saveProjectToStorage();
+        }
+
+        /**
+         * שלב 2 (ג'): שיפור תוכנית
+         */
+        async function handleImprovePlan() {
+            if (!currentProject.jsonPlan) return;
+            
+            showLoading(true, "שולח תוכנית ל-AI לקבלת הצעות שיפור...");
+            const currentPlanString = JSON.stringify(currentProject.jsonPlan);
+            
+            const prompt = `
+                זוהי תוכנית קומיקס (JSON) קיימת: ${currentPlanString}.
+                אנא סרוק אותה והצע שיפורים. התמקד בשיפור הדרמה, הקצב, והצעות הקומפוזיציה.
+                החזר אובייקט JSON חוקי בלבד, באותה סכמה בדיוק, המכיל את התוכנית המשופרת.
+            `;
+            
+            try {
+                const schema = getComicPlanSchema();
+                const generationConfig = { responseMimeType: "application/json", responseSchema: schema };
+                const result = await generateTextWithRetry(prompt, generationConfig);
+                const responseText = result.candidates[0].content.parts[0].text;
+                
+                currentProject.jsonPlan = JSON.parse(responseText);
+                saveProjectToStorage();
+                renderPlanEditorUI(); // רענן את העורך
+                showLoading(false);
+                alert("התוכנית שופרה על ידי ה-AI!");
+                
+            } catch (error) {
+                showLoading(false);
+                console.error("שגיאה בשיפור התוכנית:", error);
+                alert(`שגיאה בשיפור התוכנית: ${error.message}`);
+            }
+        }
+        
+        /**
+         * סכמת JSON עבור ה-Planner
+         */
+        function getComicPlanSchema() {
+             return {
+                type: "OBJECT",
+                properties: {
+                    "title": { "type": "STRING", "description": "שם קצר וקליט לקומיקס" },
+                    "globalStyle": { "type": "STRING", "description": "תיאור סגנון הציור הגלובלי (למשל: 'סגנון מנגה שחור-לבן', 'סגנון קומיקס אמריקאי וינטג'')" },
+                    "characters": {
+                        "type": "ARRAY",
+                        "description": "רשימת הדמויות הראשיות בסיפור",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "name": { "type": "STRING", "description": "שם הדמות (לשימוש בבועות דיבור)" },
+                                "description": { "type": "STRING", "description": "תיאור חזותי מפורט מאוד של הדמות (גיל, שיער, תווי פנים, לבוש עיקרי) ליצירת תמונת ייחוס." }
+                            },
+                        }
+                    },
+                    "pages": {
+                        "type": "ARRAY",
+                        "description": "מערך של כל העמודים בקומיקס, לפי הסדר",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "pageNumber": { "type": "NUMBER" },
+                                "sceneDescription": { "type": "STRING", "description": "תיאור חזותי מפורט של הסצנה בעמוד זה." },
+                                "compositionSuggestion": { "type": "STRING", "description": "הצעה לקומפוזיציה (למשל: 'קלוז אפ דרמטי')" },
+                                "suggestedEmotion": { "type": "STRING", "description": "הרגש המרכזי (למשל: 'הפתעה', 'כעס')" },
+                                "dialogue": {
+                                    "type": "ARRAY",
+                                    "description": "כל בועות הדיבור/מחשבה בעמוד",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "character": { "type": "STRING" },
+                                            "type": { "type": "STRING", "enum": ["speech", "thought"] },
+                                            "text": { "type": "STRING" }
+                                        }
+                                    }
+                                },
+                                "narration": { "type": "STRING", "description": "טקסט קריינות (אם קיים)." }
+                            },
+                        }
+                    }
+                },
+            };
+        }
+
+        /**
+         * שלב 3: אישור תוכנית והתחלת יצירה
+         */
+        async function handleApprovePlan() {
+            if (!currentProject.jsonPlan) return;
+            
+            const allCharsReady = currentProject.characters.every(c => c.referenceImageB64);
+            if (!allCharsReady) {
+                alert("אנא המתן לסיום יצירת כל תמונות הדמויות לפני ההמשך.");
+                return;
+            }
+
+            // חישוב קריאות
+            const requiredCalls = currentProject.jsonPlan.pages.length;
+            const availableKeys = apiKeyPool.length;
+            const CALLS_PER_KEY_ESTIMATE = 20; // הערכה גסה למגבלת מפתח חינמי
+            const neededKeys = Math.ceil(requiredCalls / CALLS_PER_KEY_ESTIMATE);
+
+            if (availableKeys < neededKeys) {
+                const keysToAdd = neededKeys - availableKeys;
+                showModal(dom.keyPoolModal);
+                dom.keyPoolMessage.textContent = `הקומיקס שלך דורש כ-${requiredCalls} קריאות API.
+                       על בסיס הערכה, נדרשים כ-${neededKeys} מפתחות בסך הכל.
+                       אנא הוסף לפחות עוד ${keysToAdd} מפתחות גיבוי.`;
+                return;
+            }
+            
+            dom.navButtons[2].disabled = false; // אפשר כפתור ניווט
+            showScreen('generation-section');
+            await startGenerationProcess();
+        }
+
+        /**
+         * שלב 3 (ב'): לולאת יצירת עמודים
+         */
+        async function startGenerationProcess() {
+            dom.comicViewerContainer.innerHTML = '';
+            const pages = currentProject.jsonPlan.pages;
+            currentProject.generatedPages = []; // אתחל
+
+            for (let i = 0; i < pages.length; i++) {
+                const page = pages[i];
+                updateGenerationProgress(i, pages.length);
+                
+                try {
+                    const promptText = buildPagePromptText(page);
+                    const inputImage = findFirstCharacterImage(page); // מצא תמונת ייחוס רלוונטית
+                    
+                    const base64Data = await generateImageWithRetry(promptText, inputImage);
+                    const pageData = {
+                        pageNumber: page.pageNumber,
+                        imageB64: base64Data,
+                        mimeType: "image/png"
+                    };
+                    currentProject.generatedPages.push(pageData);
+                    
+                    renderGeneratedPage(pageData, i);
+                    saveProjectToStorage();
+
+                } catch (error) {
+                    console.error(`שגיאה ביצירת עמוד ${page.pageNumber}:`, error);
+                    updateGenerationProgress(i, pages.length, true); // הצג שגיאה
+                    alert(`תהליך היצירה נכשל בעמוד ${page.pageNumber}: ${error.message}`);
+                    break; // עצור את הלולאה
+                }
+            }
+            
+            if (currentProject.generatedPages.length === pages.length) {
+                updateGenerationProgress(pages.length, pages.length); // סיים
+            }
+        }
+
+        function updateGenerationProgress(current, total, error = false) {
+            if (error) {
+                dom.progressBarFill.style.width = '100%';
+                dom.progressBarFill.style.backgroundColor = 'rgb(239 68 68)'; // red-500
+                dom.progressText.textContent = `שגיאה ביצירה בעמוד ${current + 1}.`;
+                return;
+            }
+            
+            const percentage = Math.round(((current + 1) / total) * 100);
+            dom.progressBarFill.style.width = `${percentage}%`;
+            
+            if (current + 1 === total) {
+                dom.progressBarFill.style.backgroundColor = 'rgb(16 185 129)'; // green-500
+                dom.progressText.textContent = `הושלם! ${total} מתוך ${total} עמודים נוצרו.`;
+            } else {
+                dom.progressText.textContent = `מייצר עמוד ${current + 1} מתוך ${total}... (${percentage}%)`;
+            }
+        }
+
+        /**
+         * בונה את הנחיית הטקסט המורכבת עבור עמוד
+         */
+        function buildPagePromptText(page) {
+            const { title, globalStyle } = currentProject.jsonPlan;
+            let textPrompt = `צור עמוד קומיקס יחיד ומפורט, באיכות גבוהה, המתאים לסיפור "${title}".\n`;
+            textPrompt += `**סגנון כללי:** ${globalStyle}\n`;
+            textPrompt += `**תיאור סצנה:** ${page.sceneDescription}\n`;
+            if (page.compositionSuggestion) textPrompt += `**קומפוזיציה:** ${page.compositionSuggestion}\n`;
+            if (page.suggestedEmotion) textPrompt += `**רגש מרכזי:** ${page.suggestedEmotion}\n`;
+            if (page.narration) textPrompt += `**קריינות:** "${page.narration}"\n`;
+            
+            if (page.dialogue && page.dialogue.length > 0) {
+                textPrompt += `**דיאלוגים:**\n`;
+                page.dialogue.forEach(diag => {
+                    const type = diag.type === 'thought' ? 'מחשבה' : 'דיבור';
+                    textPrompt += `- ${diag.character} (${type}): "${diag.text}"\n`;
+                });
+            }
+            
+            textPrompt += "\nאם סופקה תמונת קלט, השתמש בה כייחוס לדמות המרכזית.";
+            return textPrompt;
+        }
+
+        /**
+         * מוצא את תמונת הייחוס של הדמות הראשונה המדברת
+         */
+        function findFirstCharacterImage(page) {
+            if (!page.dialogue || page.dialogue.length === 0) return null;
+            const firstCharName = page.dialogue[0].character;
+            const charData = currentProject.characters.find(c => c.name === firstCharName);
+            return charData ? charData.referenceImageB64 : null;
+        }
+
+        /**
+         * מציג עמוד קומיקס שנוצר באזור התצוגה
+         */
+        function renderGeneratedPage(pageData, index) {
+            const pageEl = document.createElement('div');
+            pageEl.className = "bg-white rounded-lg shadow-lg overflow-hidden";
+            pageEl.dataset.pageIndex = index;
+            
+            const imgSrc = `data:${pageData.mimeType};base64,${pageData.imageB64}`;
+            
+            pageEl.innerHTML = `
+                <img src="${imgSrc}" alt="עמוד קומיקס ${pageData.pageNumber}" class="w-full h-auto object-cover">
+                <div class="p-4 flex justify-between items-center">
+                    <span class="font-bold text-slate-700">עמוד ${pageData.pageNumber}</span>
+                    <button class="edit-page-btn flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white text-slate-700 rounded-lg shadow-sm hover:bg-slate-50 border border-slate-200" data-index="${index}">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <span>ערוך עמוד</span>
+                    </button>
+                </div>
+            `;
+            dom.comicViewerContainer.appendChild(pageEl);
+            pageEl.querySelector('.edit-page-btn').addEventListener('click', (e) => {
+                const index = e.currentTarget.dataset.index;
+                showEditModal('page', index);
+            });
+            lucide.createIcons();
+        }
+
+        /**
+         * שלב 4: עריכה חכמה
+         */
+        async function handleApplyEdit() {
+            const type = dom.editModal.dataset.editType;
+            const index = parseInt(dom.editModal.dataset.editIndex, 10);
+            const editPrompt = dom.editModalPrompt.value.trim();
+
+            if (!editPrompt) {
+                alert("אנא הזן הנחיית עריכה.");
+                return;
+            }
+
+            let currentBase64 = "";
+            let objectName = "";
+            
+            if (type === 'character') {
+                currentBase64 = currentProject.characters[index].referenceImageB64;
+                objectName = `דמות: ${currentProject.characters[index].name}`;
+            } else if (type === 'page') {
+                currentBase64 = currentProject.generatedPages[index].imageB64;
+                objectName = `עמוד: ${currentProject.generatedPages[index].pageNumber}`;
+            }
+
+            hideModal(dom.editModal);
+            showLoading(true, `מבצע עריכה חכמה עבור ${objectName}...`);
+            
+            try {
+                const fullEditPrompt = `בהתבסס על התמונה המסופקת, בצע את השינוי הבא: "${editPrompt}".`;
+                const newBase64Data = await generateImageWithRetry(fullEditPrompt, currentBase64);
+                const newImageSrc = `data:image/png;base64,${newBase64Data}`;
+
+                // עדכן את המצב (state) וה-UI
+                if (type === 'character') {
+                    currentProject.characters[index].referenceImageB64 = newBase64Data;
+                    const imgEl = document.querySelector(`#char-img-${index}`);
+                    if (imgEl) imgEl.src = newImageSrc;
+                } else if (type === 'page') {
+                    currentProject.generatedPages[index].imageB64 = newBase64Data;
+                    const imgEl = dom.comicViewerContainer.querySelector(`[data-page-index="${index}"] img`);
+                    if (imgEl) imgEl.src = newImageSrc;
+                }
+                
+                saveProjectToStorage();
+                showLoading(false);
+                alert("העריכה בוצעה בהצלחה!");
+
+            } catch (error) {
+                showLoading(false);
+                console.error("שגיאה במהלך העריכה החכמה:", error);
+                alert(`שגיאת עריכה: ${error.message}`);
+            }
+        }
+        
+        /**
+         * שלב 5: ייצוא וניהול
+         */
+        function handleExportPdf() {
+            alert("פונקציית ייצוא PDF מלאה דורשת ספרייה חיצונית (כמו jsPDF). לצורך הדגמה, אנא השתמש באפשרות ההדפסה של הדפדפן (Ctrl+P) כדי לשמור כ-PDF.");
+        }
+        
+        function handleExportCbz() {
+            alert("פונקציית ייצוא CBZ (ZIP) דורשת ספרייה חיצונית (כמו JSZip) ולא נתמכת בגרסה זו.");
+        }
+
+        function handleClearStorage() {
+            if (confirm("האם אתה בטוח שברצונך למחוק את כל הפרויקט, כולל מפתחות ה-API השמורים? אין דרך לשחזר זאת.")) {
+                localStorage.removeItem('panalix_api_key');
+                localStorage.removeItem('panalix_backup_keys');
+                localStorage.removeItem('panalix_project');
+                location.reload();
+            }
+        }
+        
+
+        // --- 6. אתחול האפליקציה (Initialization) ---
+        
+        async function loadInitialState() {
+            loadKeysFromStorage();
+            updateStorageUsageDisplay();
+            
+            if (apiKeyPool.length === 0) {
+                // אין מפתח, הצג מסך כניסה
+                dom.apiKeyScreen.classList.remove('hidden');
+                dom.mainApp.classList.add('hidden');
+                lucide.createIcons();
+                return;
+            }
+            
+            // יש מפתח, נסה לאמת אותו
+            showLoading(true, "מאמת מפתח API שמור...");
+            try {
+                // נבצע קריאת API פשוטה וזולה לאימות
+                await generateTextWithRetry("test", {});
+                
+                // המפתח תקין
+                showLoading(false);
+                dom.mainApp.classList.remove('hidden');
+                dom.apiKeyScreen.classList.add('hidden');
+                
+                // טען פרויקט קיים (אם יש)
+                const storedProject = localStorage.getItem('panalix_project');
+                if (storedProject) {
+                    try {
+                        currentProject = JSON.parse(storedProject);
+                        // שחזר את המצב
+                        if (currentProject.generatedPages && currentProject.generatedPages.length > 0) {
+                            dom.navButtons[1].disabled = false;
+                            dom.navButtons[2].disabled = false;
+                            showScreen('generation-section');
+                            renderCharacterApprovalUI(); // טען דמויות ברקע
+                            renderPlanEditorUI();
+                            renderGeneratedPagesFromState();
+                        } else if (currentProject.jsonPlan) {
+                            dom.navButtons[1].disabled = false;
+                            showScreen('approval-section');
+                            renderCharacterApprovalUI();
+                            renderPlanEditorUI();
+                        } else {
+                            showScreen('story-input-section');
+                        }
+                    } catch (e) {
+                        console.error("שגיאה בפענוח פרויקט שמור:", e);
+                        localStorage.removeItem('panalix_project');
+                        showScreen('story-input-section');
+                    }
+                } else {
+                    showScreen('story-input-section');
+                }
+                
+            } catch (validationError) {
+                // המפתח השמור לא תקין
+                showLoading(false);
+                dom.apiKeyScreen.classList.remove('hidden');
+                dom.mainApp.classList.add('hidden');
+                dom.apiKeyErrorMsg.classList.remove('hidden');
+                dom.apiKeyErrorText.textContent = "המפתח השמור שלך אינו חוקי או שפג תוקפו. אנא הזן מחדש.";
+                
+                // נקה את המפתח הלא תקין
+                localStorage.removeItem('panalix_api_key');
+                localStorage.removeItem('panalix_backup_keys');
+                apiKeyPool = [];
+                dom.keyCountDisplay.textContent = 0;
+            }
+            
+            lucide.createIcons();
+        }
+
+        function renderGeneratedPagesFromState() {
+            dom.comicViewerContainer.innerHTML = '';
+            currentProject.generatedPages.forEach((page, index) => {
+                renderGeneratedPage(page, index);
+            });
+            updateGenerationProgress(currentProject.generatedPages.length, currentProject.jsonPlan.pages.length);
+        }
+
+        // --- 7. רישום מאזיני אירועים ---
+        function registerEventListeners() {
+            dom.apiKeyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const key = dom.apiKeyInput.value.trim();
+                if (key) {
+                    localStorage.setItem('panalix_api_key', key);
+                    loadInitialState(); // טען מחדש את האפליקציה עם המפתח החדש
+                }
+            });
+
+            // ניווט בסרגל הצד
+            dom.navButtons.forEach(btn => {
+                btn.addEventListener('click', () => showScreen(btn.dataset.screen));
+            });
+            
+            // שלב 1
+            dom.generatePlanBtn.addEventListener('click', handleGeneratePlan);
+            
+            // שלב 2
+            dom.improvePlanBtn.addEventListener('click', handleImprovePlan);
+            dom.approvePlanBtn.addEventListener('click', handleApprovePlan);
+            
+            // שלב 3
+            dom.exportPdfBtn.addEventListener('click', handleExportPdf);
+            dom.exportCbzBtn.addEventListener('click', handleExportCbz);
+            
+            // מודאלים
+            dom.applyEditBtn.addEventListener('click', handleApplyEdit);
+            dom.closeEditModalBtn.addEventListener('click', () => hideModal(dom.editModal));
+            
+            dom.manageKeysBtn.addEventListener('click', () => showModal(dom.keyPoolModal));
+            dom.addBackupKeysBtn.addEventListener('click', () => {
+                const newKeys = dom.backupKeysInput.value.trim().split(',')
+                                  .map(k => k.trim()).filter(k => k);
+                apiKeyPool.push(...newKeys);
+                saveKeysToStorage();
+                hideModal(dom.keyPoolModal);
+                dom.backupKeysInput.value = '';
+                alert(`נוספו ${newKeys.length} מפתחות גיבוי.`);
+            });
+            dom.closeKeyPoolModalBtn.addEventListener('click', () => hideModal(dom.keyPoolModal));
+            
+            // ניהול
+            dom.clearStorageBtn.addEventListener('click', handleClearStorage);
+        }
+
+        // --- 8. הפעלה ---
+        registerEventListeners();
+        loadInitialState(); // הפונקציה המרכזית שמאתחלת את כל האפליקציה
+
+    </script>
 </body>
 </html>
